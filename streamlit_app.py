@@ -29,9 +29,8 @@ st.write("Jours d'absence:")
 day_abs = st.columns(5)
 checkbox_dict_abs = {}
 for d_idx, day in enumerate(day_abs):
-  check_day_abs = day.checkbox(days[d_idx],key=days[d_idx]+"_abs")
+  check_day_abs = day.checkbox(days[d_idx],key=days[d_idx]+"_abs",disabled=checkbox_dict_tt[days[d_idx]])
   checkbox_dict_abs[days[d_idx]] = check_day_abs
-
 # Dict pour les rôles de chaque équipe:
 role_dict = {"Présentiel":["Production","Signature/Courrier","IC"],
              "Télétravail":["Production","IC"],
@@ -150,10 +149,11 @@ solver.solve(model)
 status = solver.solve(model)
 if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
   st.write("Emploi du temps généré !")
-  st.write("💪 = Production")
-  st.write("✉️ = Signature/Courrier")
-  st.write("🙋 = Intercom")
-  st.write("🚫 = Absent")
+  left, right = st.columns(2)
+  left.write("💪 = Production")
+  right.write("✉️ = Signature/Courrier")
+  left.write("🙋 = Intercom")
+  right.write("🚫 = Absent")
 
   data_list = []
   for e in employees:
