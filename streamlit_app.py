@@ -56,6 +56,9 @@ if right.button("Enlever le collaborateur", icon="➖", use_container_width=True
   with open("employee_planning.json","w") as employee_file:
     json.dump(employees_planning, employee_file)
 
+with open("employee_planning.json","r") as employee_file:
+  employees_planning = json.load(employee_file)   
+
 st.dataframe(pd.DataFrame(employees_planning),use_container_width=True)
 employees_roles = {
              e: {d:role_dict[employees_planning[e][d]]for d in days} for e in employees
