@@ -38,7 +38,6 @@ role_dict = {"Présentiel":["Production","Signature/Courrier","IC"],
              }
 
 roles = set(role_dict["Présentiel"] + role_dict["Télétravail"] +  role_dict["Absent"])
-employees = list(employees_planning.keys())
 left, right = st.columns(2)
 
 if left.button("Ajouter le collaborateur", icon="➕", use_container_width=True):
@@ -48,17 +47,18 @@ if left.button("Ajouter le collaborateur", icon="➕", use_container_width=True)
 if right.button("Enlever le collaborateur", icon="➖", use_container_width=True):
   with open("employee_planning.json","r") as employee_file:
     employees_planning = json.load(employee_file)   
-    if st.session_state.name in employees_planning:
-      employees_planning.pop(st.session_state.name)
-      right.markdown(f"{st.session_state.name} enlevé !")
-    else:
-      right.markdown(f"{st.session_state.name} n'est pas dans la liste !")
+  if st.session_state.name in employees_planning:
+    employees_planning.pop(st.session_state.name)
+    right.markdown(f"{st.session_state.name} enlevé !")
+  else:
+    right.markdown(f"{st.session_state.name} n'est pas dans la liste !")
   with open("employee_planning.json","w") as employee_file:
     json.dump(employees_planning, employee_file)
 
 with open("employee_planning.json","r") as employee_file:
   employees_planning = json.load(employee_file)   
 
+employees = list(employees_planning.keys())
 st.dataframe(pd.DataFrame(employees_planning),use_container_width=True)
 employees_roles = {
              e: {d:role_dict[employees_planning[e][d]]for d in days} for e in employees
