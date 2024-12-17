@@ -150,16 +150,17 @@ status = solver.solve(model)
 if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
   st.write("Emploi du temps généré !")
   left, right = st.columns(2)
-  left.write("💪 = Production")
-  right.write("✉️ = Signature/Courrier")
-  left.write("🙋 = Intercom")
+  left.write("🔵 = Production")
+  right.write("🟡 = Signature")
+  left.write("🟢 = Intercom")
   right.write("🚫 = Absent")
 
   data_list = []
   for e in employees:
     for d in days:
       for s in shifts:
-        role = "✉️" if solver.value(schedule[e]["Signature/Courrier"][d][s]) == 1 else "💪" if (solver.value(schedule[e]["Production"][d][s]) == 1) else "🙋" if solver.value(schedule[e]["IC"][d][s]) == 1 else "🚫" if solver.value(schedule[e]["Absent"][d][s]) == 1 else None
+        role = "🟡" if solver.value(schedule[e]["Signature/Courrier"][d][s]) == 1 else "🔵" if (solver.value(schedule[e]["Production"][d][s]) == 1) else "🟢" if solver.value(schedule[e]["IC"][d][s]) == 1 else "🚫" if solver.value(schedule[e]["Absent"][d][s]) == 1 else None
+        #role += "t" if employees_planning[e][d] == "Télétravail" else "" if employees_planning[e][d] == "Absent"  else "o"
         data_list.append({"employee":e, "day":d, "shift":s,"role":role})
   schedule_df = pd.DataFrame(data_list).sort_values(by=["day","employee"])
   pivot_data = schedule_df.pivot_table(
@@ -171,6 +172,6 @@ if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
   #custom_order =
   #pivot_data['day'] = pd.Categorical(pivot_data['day'], categories=custom_order, ordered=True)
   #pivot_data = pivot_data.sort_values(by=['day','shift'])
-  st.dataframe(pivot_data,use_container_width=True)
+  st.dataframe(pivot_data,use_container_width=True,)
 else:
   st.write("Pas d'emploi du temps possible  :(")
