@@ -158,16 +158,19 @@ if rule2:
                 sum(has_full_day_IC[e][d] for d in days) == 0
             )
 
-rule3 = st.checkbox("Il faut que les plannings soient équilibrés.", value=True)
+rule3 = st.checkbox(
+    "Il faut que les plannings soient équilibrés (Une demi-journée max de différence pour chaque tâches.)", value=True)
 if rule3:
     max_nb_shifts = 10
     total_shifts = {}
     min_shifts = {}
     max_shifts = {}
+    full_week_employees = [e for e in employees if "Absent" not in [
+        employees_planning[e][d] for d in days]]
     for r in [r for r in roles if r != "Absent"]:
         print(r)
         total_shifts[r] = {}
-        for e in employees:
+        for e in full_week_employees:
             total_shifts[r][e] = model.new_int_var(
                 0, max_nb_shifts, f"total_shifts_c_{e}_{r}")
             model.add(total_shifts[r][e] == sum(
@@ -175,12 +178,13 @@ if rule3:
         min_shifts[r] = model.new_int_var(
             0, max_nb_shifts, f"min_shifts_c_{r}")
         model.add_min_equality(
-            min_shifts[r], [total_shifts[r][e] for e in employees])
+            min_shifts[r], [total_shifts[r][e] for e in full_week_employees])
         max_shifts[r] = model.new_int_var(
             0, max_nb_shifts, f"max_shifts_c_{r}")
         model.add_max_equality(
-            max_shifts[r], [total_shifts[r][e] for e in employees])
-        model.minimize(max_shifts[r] - min_shifts[r])
+            max_shifts[r], [total_shifts[r][e] for e in full_week_employees])
+        model.add(max_shifts[r] - min_shifts[r] <= 1)
+
 
 solver = cp_model.CpSolver()
 solver.solve(model)
