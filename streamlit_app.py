@@ -213,5 +213,16 @@ if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
     # pivot_data['day'] = pd.Categorical(pivot_data['day'], categories=custom_order, ordered=True)
     # pivot_data = pivot_data.sort_values(by=['day','shift'])
     st.dataframe(pivot_data, use_container_width=True,)
+
+    count_dict_list = []
+    for employee, employee_df in schedule_df.groupby(by="employee"):
+        shift_counts = employee_df["role"].value_counts()
+        count_dict = {"employee": employee}
+        for role, role_count in zip(shift_counts.index, shift_counts.values):
+            count_dict[role] = role_count
+        count_dict_list.append(count_dict)
+    count_df = pd.DataFrame(count_dict_list)
+    st.write("Compte total:")
+    st.write(count_df)
 else:
     st.write("Pas d'emploi du temps possible  :(")
