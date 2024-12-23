@@ -33,7 +33,7 @@ for d_idx, day in enumerate(day_abs):
         days[d_idx], key=days[d_idx]+"_abs", disabled=checkbox_dict_tt[days[d_idx]])
     checkbox_dict_abs[days[d_idx]] = check_day_abs
 # Dict pour les rôles de chaque équipe:
-role_dict = {"Présentiel": ["Production", "Signature/Courrier", "IC"],
+role_dict = {"Présentiel": ["Production", "Signature", "IC"],
              "Télétravail": ["Production", "IC"],
              "Absent": ["Absent"]
              }
@@ -93,7 +93,7 @@ for e in employees:
             model.add(sum(schedule[e][r][d][s] for r in roles) <= 1)
 
 rule1 = st.checkbox(
-    "Il faut toujours que pour chaque demi-journée on ait une personne designature/courrier et une personne d’IC.", value=True)
+    "Il faut toujours que pour chaque demi-journée on ait une personne deSignature et une personne d’IC.", value=True)
 if rule1:
     has_sign = {}
     has_ic = {}
@@ -103,7 +103,7 @@ if rule1:
         for s in shifts:
             has_sign[d][s] = {}
             has_ic[d][s] = {}
-            model.add(sum(schedule[e]["Signature/Courrier"][d][s]
+            model.add(sum(schedule[e]["Signature"][d][s]
                       for e in employees) == 1)
             model.add(sum(schedule[e]["IC"][d][s] for e in employees) == 1)
             for e in employees:
@@ -111,7 +111,7 @@ if rule1:
                     has_sign[d][s][e] = model.new_bool_var(
                         f"has_sign_{d}_{s}_{e}")
                     has_ic[d][s][e] = model.new_bool_var(f"has_ic_{d}_{s}_{e}")
-                    model.add(schedule[e]["Signature/Courrier"][d]
+                    model.add(schedule[e]["Signature"][d]
                               [s] == 1).only_enforce_if(has_sign[d][s][e])
                     model.add(schedule[e]["IC"][d][s] ==
                               1).only_enforce_if(has_ic[d][s][e])
@@ -119,14 +119,19 @@ if rule1:
                         ~has_sign[d][s][e]).only_enforce_if(~has_ic[d][s][e])
 
 rule2 = st.checkbox(
-    "Il faut que chaque personne ait une journée de prod complète. Il faut que personne n'ait une journée avec que de l'IC.", value=True)
+    "Il faut que chaque personne ait une journée de prod complète.\n"
+    "Il faut que personne n'ait une journée avec que de l'IC ou que de la Signature.\n", value=True)
 if rule2:
     has_full_day_prod = {}
     has_full_day_IC = {}
+    has_full_day_signature = {}
     is_absent = {}
     for e in employees:
         has_full_day_prod[e] = {
             d:  model.new_bool_var(f"has_full_day_prod_{e}_{d}") for d in days
+        }
+        has_full_day_signature[e] = {
+            d:  model.new_bool_var(f"has_full_day_signature_{e}_{d}") for d in days
         }
         has_full_day_IC[e] = {
             d:  model.new_bool_var(f"has_full_day_IC_{e}_{d}") for d in days
@@ -151,6 +156,12 @@ if rule2:
                 model.add(
                     sum(schedule[e]["IC"][d][s] for s in shifts) <= 1
                 ).only_enforce_if(~has_full_day_IC[e][d])
+                model.add(
+                    sum(schedule[e]["Signature"][d][s] for s in shifts) == 2
+                ).only_enforce_if(has_full_day_signature[e][d])
+                model.add(
+                    sum(schedule[e]["Signature"][d][s] for s in shifts) <= 1
+                ).only_enforce_if(~has_full_day_signature[e][d])
             model.add(
                 sum(has_full_day_prod[e][d] for d in days) >= 1
             )
@@ -201,8 +212,8 @@ if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
     for e in employees:
         for d in days:
             for s in shifts:
-                role = "🟡" if solver.value(schedule[e]["Signature/Courrier"][d][s]) == 1 else "🔵" if (solver.value(schedule[e]["Production"][d][s])
-                                                                                                      == 1) else "🟢" if solver.value(schedule[e]["IC"][d][s]) == 1 else "🚫" if solver.value(schedule[e]["Absent"][d][s]) == 1 else None
+                role = "🟡" if solver.value(schedule[e]["Signature"][d][s]) == 1 else "🔵" if (solver.value(schedule[e]["Production"][d][s])
+                                                                                             == 1) else "🟢" if solver.value(schedule[e]["IC"][d][s]) == 1 else "🚫" if solver.value(schedule[e]["Absent"][d][s]) == 1 else None
                 # role += "t" if employees_planning[e][d] == "Télétravail" else "" if employees_planning[e][d] == "Absent"  else "o"
                 data_list.append(
                     {"employee": e, "day": d, "shift": s, "role": role})
