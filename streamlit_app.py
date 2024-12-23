@@ -93,7 +93,7 @@ for e in employees:
             model.add(sum(schedule[e][r][d][s] for r in roles) <= 1)
 
 rule1 = st.checkbox(
-    "Il faut toujours que pour chaque demi-journée on ait une personne deSignature et une personne d’IC.", value=True)
+    "Il faut toujours que pour chaque demi-journée on ait une personne de Signature et une personne d’IC.", value=True)
 if rule1:
     has_sign = {}
     has_ic = {}
