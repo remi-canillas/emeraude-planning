@@ -120,18 +120,14 @@ if rule1:
 
 rule2 = st.checkbox(
     "Il faut que chaque personne ait une journée de prod complète.\n"
-    "Il faut que personne n'ait une journée avec que de l'IC ou que de la Signature.\n", value=True)
+    "Il faut que personne n'ait une journée avec que de l'IC.\n", value=True)
 if rule2:
     has_full_day_prod = {}
     has_full_day_IC = {}
-    has_full_day_signature = {}
     is_absent = {}
     for e in employees:
         has_full_day_prod[e] = {
             d:  model.new_bool_var(f"has_full_day_prod_{e}_{d}") for d in days
-        }
-        has_full_day_signature[e] = {
-            d:  model.new_bool_var(f"has_full_day_signature_{e}_{d}") for d in days
         }
         has_full_day_IC[e] = {
             d:  model.new_bool_var(f"has_full_day_IC_{e}_{d}") for d in days
@@ -156,12 +152,6 @@ if rule2:
                 model.add(
                     sum(schedule[e]["IC"][d][s] for s in shifts) <= 1
                 ).only_enforce_if(~has_full_day_IC[e][d])
-                model.add(
-                    sum(schedule[e]["Signature"][d][s] for s in shifts) == 2
-                ).only_enforce_if(has_full_day_signature[e][d])
-                model.add(
-                    sum(schedule[e]["Signature"][d][s] for s in shifts) <= 1
-                ).only_enforce_if(~has_full_day_signature[e][d])
             model.add(
                 sum(has_full_day_prod[e][d] for d in days) >= 1
             )
