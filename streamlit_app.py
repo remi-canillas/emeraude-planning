@@ -3,6 +3,8 @@ import pandas as pd
 import json
 from ortools.sat.python import cp_model
 
+# Suite à discussion avec Lucille le 31 janvier - on désactive IC pour le moment (remplacé par le bot)
+# Au cas ou il faut le remettre (échec du bot) j'ai juste commenté les lignes 
 
 st.title("❇️ Lucille's Super Scheduler 💚")
 st.write(
@@ -33,11 +35,18 @@ for d_idx, day in enumerate(day_abs):
         days[d_idx], key=days[d_idx]+"_abs", disabled=checkbox_dict_tt[days[d_idx]])
     checkbox_dict_abs[days[d_idx]] = check_day_abs
 # Dict pour les rôles de chaque équipe:
-role_dict = {"Présentiel": ["Production", "Signature", "IC"],
-             "Télétravail": ["Production", "IC"],
+#"""
+#Avec IC
+#role_dict = {"Présentiel": ["Production", "Signature", "IC"],
+#             "Télétravail": ["Production", "IC"],
+#             "Absent": ["Absent"]
+#             }
+#"""
+#"""Sans IC"""
+role_dict = {"Présentiel": ["Production", "Signature"],
+             "Télétravail": ["Production"],
              "Absent": ["Absent"]
              }
-
 roles = set(role_dict["Présentiel"] +
             role_dict["Télétravail"] + role_dict["Absent"])
 left, right = st.columns(2)
@@ -85,6 +94,12 @@ for e in employees:
             for s in shifts:
                 if r not in employees_roles[e][d]:
                     model.add(schedule[e][r][d][s] == 0)
+                
+# Il faut forcément que les employés aient un rôle 
+for e in employees:
+    for d in days:
+        for s in shifts:
+            model.add(sum(schedule[e][r][d][s]for r in roles) > 0)
 
 # Les employés ne peuvent pas faire deux rôles en même temps
 for e in employees:
@@ -92,8 +107,14 @@ for e in employees:
         for s in shifts:
             model.add(sum(schedule[e][r][d][s] for r in roles) <= 1)
 
+#""" Avec IC
+#    rule1 = st.checkbox(
+#    "Il faut toujours que pour chaque demi-journée on ait une personne de Signature et une personne d’IC.", value=True)
+#    """
+#"""Sans IC"""
 rule1 = st.checkbox(
-    "Il faut toujours que pour chaque demi-journée on ait une personne de Signature et une personne d’IC.", value=True)
+    "Il faut toujours que pour chaque demi-journée on ait une personne de Signature.", value=True)
+
 if rule1:
     has_sign = {}
     has_ic = {}
@@ -105,33 +126,45 @@ if rule1:
             has_ic[d][s] = {}
             model.add(sum(schedule[e]["Signature"][d][s]
                       for e in employees) == 1)
-            model.add(sum(schedule[e]["IC"][d][s] for e in employees) == 1)
+            # Avec IC: model.add(sum(schedule[e]["IC"][d][s] for e in employees) == 1)
             for e in employees:
                 if employees_planning[e][d] != "Absent":
                     has_sign[d][s][e] = model.new_bool_var(
                         f"has_sign_{d}_{s}_{e}")
-                    has_ic[d][s][e] = model.new_bool_var(f"has_ic_{d}_{s}_{e}")
+                    # si IC has_ic[d][s][e] = model.new_bool_var(f"has_ic_{d}_{s}_{e}")
                     model.add(schedule[e]["Signature"][d]
                               [s] == 1).only_enforce_if(has_sign[d][s][e])
-                    model.add(schedule[e]["IC"][d][s] ==
-                              1).only_enforce_if(has_ic[d][s][e])
+                    #"""Si IC
+                    #model.add(schedule[e]["IC"][d][s] ==
+                    #          1).only_enforce_if(has_ic[d][s][e])
+                    #model.add(schedule[e]["Production"][d][s] == 1).only_enforce_if(
+                    #    ~has_sign[d][s][e]).only_enforce_if(~has_ic[d][s][e])
+                    # """
                     model.add(schedule[e]["Production"][d][s] == 1).only_enforce_if(
-                        ~has_sign[d][s][e]).only_enforce_if(~has_ic[d][s][e])
+                        ~has_sign[d][s][e])
 
+#Avec IC
+#rule2 = st.checkbox(
+#    "Il faut que chaque personne ait une journée de prod complète.\n"
+#    "Il faut que personne n'ait une journée avec que de l'IC.\n", value=True)
+#
+#Sans IC
 rule2 = st.checkbox(
-    "Il faut que chaque personne ait une journée de prod complète.\n"
-    "Il faut que personne n'ait une journée avec que de l'IC.\n", value=True)
+    "Il faut que chaque personne ait une journée de prod complète.\n", value=True)
 if rule2:
     has_full_day_prod = {}
-    has_full_day_IC = {}
+    # Avec IC has_full_day_IC = {}
     is_absent = {}
     for e in employees:
         has_full_day_prod[e] = {
             d:  model.new_bool_var(f"has_full_day_prod_{e}_{d}") for d in days
         }
-        has_full_day_IC[e] = {
-            d:  model.new_bool_var(f"has_full_day_IC_{e}_{d}") for d in days
-        }
+        #"""
+        #Avec IC
+        #has_full_day_IC[e] = {
+        #    d:  model.new_bool_var(f"has_full_day_IC_{e}_{d}") for d in days
+        #}
+        #"""
         is_absent[e] = {
             d:  model.new_bool_var(f"is_absent_{e}_{d}") for d in days
         }
@@ -146,18 +179,22 @@ if rule2:
                 model.add(
                     sum(schedule[e]["Production"][d][s] for s in shifts) <= 1
                 ).only_enforce_if(~has_full_day_prod[e][d])
-                model.add(
-                    sum(schedule[e]["IC"][d][s] for s in shifts) == 2
-                ).only_enforce_if(has_full_day_IC[e][d])
-                model.add(
-                    sum(schedule[e]["IC"][d][s] for s in shifts) <= 1
-                ).only_enforce_if(~has_full_day_IC[e][d])
+                #"""Avec IC
+                #model.add(
+                #    sum(schedule[e]["IC"][d][s] for s in shifts) == 2
+                #).only_enforce_if(has_full_day_IC[e][d])
+                #model.add(
+                #    sum(schedule[e]["IC"][d][s] for s in shifts) <= 1
+                #).only_enforce_if(~has_full_day_IC[e][d])
+                #"""
             model.add(
                 sum(has_full_day_prod[e][d] for d in days) >= 1
             )
-            model.add(
-                sum(has_full_day_IC[e][d] for d in days) == 0
-            )
+            #"""Avec IC
+            #model.add(
+            #    sum(has_full_day_IC[e][d] for d in days) == 0
+            #)
+            #"""
 
 rule3 = st.checkbox(
     "Il faut que les plannings soient équilibrés (Une demi-journée max de différence pour chaque tâches.)", value=True)
@@ -195,15 +232,16 @@ if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
     left, right = st.columns(2)
     left.write("🔵 = Production")
     right.write("🟡 = Signature")
-    left.write("🟢 = Intercom")
-    right.write("🚫 = Absent")
-
+    # Si IC left.write("🟢 = Intercom")
+    # right.write("🚫 = Absent")
+    # Sans IC
+    left.write("🚫 = Absent")
     data_list = []
     for e in employees:
         for d in days:
             for s in shifts:
-                role = "🟡" if solver.value(schedule[e]["Signature"][d][s]) == 1 else "🔵" if (solver.value(schedule[e]["Production"][d][s])
-                                                                                             == 1) else "🟢" if solver.value(schedule[e]["IC"][d][s]) == 1 else "🚫" if solver.value(schedule[e]["Absent"][d][s]) == 1 else None
+                # Avec IC: role = "🟡" if solver.value(schedule[e]["Signature"][d][s]) == 1 else "🔵" if (solver.value(schedule[e]["Production"][d][s]) == 1) else "🟢" if solver.value(schedule[e]["IC"][d][s]) == 1 else "🚫" if solver.value(schedule[e]["Absent"][d][s]) == 1 else None
+                role = "🟡" if solver.value(schedule[e]["Signature"][d][s]) == 1 else "🔵" if (solver.value(schedule[e]["Production"][d][s]) == 1) else "🚫" if solver.value(schedule[e]["Absent"][d][s]) == 1 else None                
                 # role += "t" if employees_planning[e][d] == "Télétravail" else "" if employees_planning[e][d] == "Absent"  else "o"
                 data_list.append(
                     {"employee": e, "day": d, "shift": s, "role": role})
